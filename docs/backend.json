@@ -1,0 +1,217 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Herbbify application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user.",
+          "format": "uuid"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public display name for the user."
+        },
+        "country": {
+          "type": "string",
+          "description": "The user's country of residence."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "signUpDate": {
+          "type": "string",
+          "description": "Date and time the user signed up.",
+          "format": "date-time"
+        },
+        "lastLogin": {
+          "type": "string",
+          "description": "Date and time of the user's last login.",
+          "format": "date-time"
+        },
+        "plan": {
+          "type": "string",
+          "description": "The user's subscription plan.",
+          "enum": [
+            "Free",
+            "Premium"
+          ]
+        },
+        "planExpiresAt": {
+            "type": "string",
+            "description": "Date and time the user's premium plan expires.",
+            "format": "date-time"
+        },
+        "preparationCreditsUsed": {
+          "type": "number",
+          "description": "The number of 'How to Prepare' generations the user has made."
+        },
+        "savedRemediesCreditsUsed": {
+          "type": "number",
+          "description": "The number of remedies a user has saved."
+        },
+        "socialPostDownloadCreditsUsed": {
+          "type": "number",
+          "description": "The number of social posts the user has downloaded."
+        },
+        "emailVerified": {
+            "type": "boolean",
+            "description": "Whether the user has verified their email address."
+        },
+        "otp": {
+            "type": "string",
+            "description": "The current One-Time Password for email verification."
+        },
+        "otpExpires": {
+            "type": "string",
+            "description": "The expiration date and time for the current OTP.",
+            "format": "date-time"
+        },
+        "age": {
+            "type": "string",
+            "description": "The user's age range."
+        },
+        "gender": {
+            "type": "string",
+            "description": "The user's gender."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "displayName",
+        "signUpDate",
+        "plan"
+      ]
+    },
+    "Remedy": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Remedy",
+      "type": "object",
+      "description": "A saved herbal remedy generated for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the saved remedy."
+        },
+        "title": {
+          "type": "string",
+          "description": "The name of the remedy."
+        },
+        "symptoms": {
+          "type": "string",
+          "description": "The original symptoms the user entered."
+        },
+        "remedyDescription": {
+          "type": "string",
+          "description": "A short, one-sentence summary of what the remedy is for."
+        },
+        "instructionsSummary": {
+          "type": "string",
+          "description": "A short, one-sentence summary of how to prepare the remedy."
+        },
+        "herbs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The list of herbs and fruits in the remedy."
+        },
+        "instructions": {
+          "type": "string",
+          "description": "The full, step-by-step preparation instructions."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the remedy was saved.",
+          "format": "date-time"
+        },
+        "wellnessPlan": {
+          "type": "array",
+          "description": "A 30-day wellness plan associated with the remedy.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": { "type": "number" },
+              "recommendation": { "type": "string" },
+              "tip": { "type": "string" }
+            },
+            "required": ["day", "recommendation", "tip"]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "symptoms",
+        "herbs",
+        "instructions",
+        "createdAt",
+        "remedyDescription",
+        "instructionsSummary"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous",
+      "google.com"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "user",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Access control is based on path ownership - only the user with the matching userId can read or write to their document. Includes user's personal information like email, first name, last name, sign-up date, last login time, plan, and generation usage.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, matching the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/remedies/{remedyId}",
+        "definition": {
+          "entityName": "remedy",
+          "schema": {
+            "$ref": "#/backend/entities/Remedy"
+          },
+          "description": "Stores herbal remedies saved by a user. Each user can only access their own remedies, enforced by path ownership rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The UID of the user who owns this remedy."
+            },
+            {
+              "name": "remedyId",
+              "description": "The unique ID for the saved remedy."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure secure and scalable data management for the Herbbify application, focusing on user data. The core principle is Authorization Independence, achieved through path-based ownership and structural segregation. The `/users/{userId}` collection stores user profiles, using the `userId` as the document ID. This structure inherently grants the user full access to their own data via simple path-based security rules. The `User` documents store all the information required for basic user management and subscription/usage tracking. The nested `/users/{userId}/remedies` subcollection stores remedies saved by the user, ensuring that a user's private data is only accessible via a path containing their own UID."
+  }
+}

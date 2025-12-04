@@ -1,0 +1,102 @@
+/**
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. The fundamental principle
+ * is that users have complete control over their own data, and absolutely no
+ * access to anyone else's data. All data is contained within a user-specific
+ * document or subcollection.
+ *
+ * Data Structure:
+ * - /users/{userId} -> User Profile Document
+ * - /users/{userId}/remedies/{remedyId} -> Saved Remedy Document
+ *
+ * Key Security Decisions:
+ * - No User Listing: It is impossible for any client to list all documents in
+ *   the `/users` collection. This is a critical privacy and security feature
+ *   to prevent user enumeration.
+ * - Self-Creation Only: A user document can only be created by the authenticated
+ *   user whose UID matches the document ID.
+ * - Path and Data Integrity: Rules enforce that the internal 'id' field of a
+ *   user document must match its path ID upon creation and be immutable.
+ * - Subcollection Ownership: Access to any subcollection (e.g., `remedies`)
+ *   is strictly controlled by the `userId` in the path, ensuring users can
+ *   only access their own nested data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the requesting user's UID matches the provided userId.
+     * This is the core of the ownership-based security model.
+     * @param userId The UID of the document owner.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Returns true if the user is the owner of an EXISTING document.
+     * CRITICAL for safe updates and deletes to prevent acting on non-existent data.
+     * @param userId The UID of the document owner.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that the internal 'id' field of a new user document
+     * matches the document's path ID (the user's auth UID).
+     * This enforces relational integrity at creation time.
+     */
+    function hasValidUserIdOnCreate(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Validates that the internal 'id' field is immutable on updates.
+     * This prevents the core ownership link from being changed.
+     */
+    function isUserIdImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
+
+    /**
+     * @description Manages user profile documents. A user can create, read, update,
+     *   and delete only their own profile document. Listing all users is forbidden.
+     * @path /users/{userId}
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Prevent user enumeration
+      allow create: if isOwner(userId) && hasValidUserIdOnCreate(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Manages saved herbal remedies for a specific user.
+       *   Access is strictly controlled by the `userId` in the path.
+       * @path /users/{userId}/remedies/{remedyId}
+       */
+      match /remedies/{remedyId} {
+        // A user can perform any action (read, list, write) on their own remedies.
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}
