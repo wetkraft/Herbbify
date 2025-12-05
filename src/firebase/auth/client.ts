@@ -36,11 +36,13 @@ export const handlePasswordReset = async (
     onSuccess();
   } catch (error: any) {
     console.error('Error sending password reset email:', error);
+    // To prevent user enumeration, we don't reveal if the user was not found.
+    // The onSuccess callback is called to show a generic message.
     if (error.code === 'auth/user-not-found') {
-      onError('This email is not registered with Herbbify.');
-    } else {
-      onError(error.message || 'An unexpected error occurred.');
+      onSuccess();
+      return;
     }
+    onError(error.message || 'An unexpected error occurred.');
   }
 };
 

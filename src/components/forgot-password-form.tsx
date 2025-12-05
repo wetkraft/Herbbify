@@ -11,9 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useError } from "@/components/error-provider";
 import { useToast } from "@/hooks/use-toast";
-import { sendPasswordResetLink } from "@/ai/flows/send-password-reset-link-flow";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { handlePasswordReset } from '@/firebase/auth/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -34,18 +34,21 @@ export function ForgotPasswordForm() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
-    try {
-      await sendPasswordResetLink({ email: values.email });
-      toast({
-        title: "Password Reset Email Sent",
-        description: "If an account with this email exists, we've sent a link to reset your password.",
-      });
-      router.push('/login');
-    } catch (error: any) {
-      showError("Error", error.message || "An unexpected error occurred while sending the reset link.");
-    } finally {
-      setIsLoading(false);
-    }
+    await handlePasswordReset(
+      values.email,
+      () => {
+        toast({
+          title: "Password Reset Email Sent",
+          description: "If an account with this email exists, we've sent a link to reset your password.",
+        });
+        router.push('/login');
+        setIsLoading(false);
+      },
+      (errorMessage) => {
+        showError("Error", errorMessage);
+        setIsLoading(false);
+      }
+    );
   };
 
   return (

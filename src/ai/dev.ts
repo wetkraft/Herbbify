@@ -12,4 +12,3 @@ import '@/ai/flows/resend-otp-flow.ts';
 import '@/ai/flows/verify-otp-flow.ts';
 import '@/ai/flows/text-to-speech-flow.ts';
 import '@/ai/flows/generate-remedy-calendar-flow.ts';
-import '@/ai/flows/send-password-reset-link-flow.ts';
