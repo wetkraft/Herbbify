@@ -5,26 +5,16 @@
  * @fileOverview A flow to reset a user's password using an OTP.
  *
  * - resetPassword - A function to verify the OTP and reset the password.
- * - ResetPasswordInput - The input type for the resetPassword function.
- * - ResetPasswordOutput - The return type for the resetPassword function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import { adminDb, adminAuth } from '@/firebase/admin';
-
-const ResetPasswordInputSchema = z.object({
-  email: z.string().email(),
-  otp: z.string().length(6, 'OTP must be 6 digits.'),
-  newPassword: z.string().min(6, 'New password must be at least 6 characters.'),
-});
-export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
-
-const ResetPasswordOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string().optional(),
-});
-export type ResetPasswordOutput = z.infer<typeof ResetPasswordOutputSchema>;
+import {
+  ResetPasswordInput,
+  ResetPasswordInputSchema,
+  ResetPasswordOutput,
+  ResetPasswordOutputSchema,
+} from './reset-password-types';
 
 export async function resetPassword(input: ResetPasswordInput): Promise<ResetPasswordOutput> {
   return resetPasswordFlow(input);
