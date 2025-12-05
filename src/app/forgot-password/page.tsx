@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { useError } from "@/components/error-provider";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { handlePasswordReset } from "@/firebase/auth/client";
+import { sendPasswordResetLink } from "@/ai/flows/send-password-reset-link-flow";
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -36,20 +36,18 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
-    await handlePasswordReset(
-      values.email,
-      () => {
-        toast({
-          title: "Password Reset Email Sent",
-          description: "Please check your inbox for a link to reset your password.",
-        });
-        router.push('/login');
-      },
-      (message) => {
-        showError("Error", message);
-      }
-    );
-    setIsLoading(false);
+    try {
+      await sendPasswordResetLink({ email: values.email });
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Please check your inbox for a link to reset your password.",
+      });
+      router.push('/login');
+    } catch (error: any) {
+      showError("Error", error.message || "An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
