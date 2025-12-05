@@ -40,11 +40,11 @@ export default function ForgotPasswordPage() {
       await sendPasswordResetLink({ email: values.email });
       toast({
         title: "Password Reset Email Sent",
-        description: "Please check your inbox for a link to reset your password.",
+        description: "If an account with this email exists, we've sent a link to reset your password.",
       });
       router.push('/login');
     } catch (error: any) {
-      showError("Error", error.message || "An unexpected error occurred.");
+      showError("Error", error.message || "An unexpected error occurred while sending the reset link.");
     } finally {
       setIsLoading(false);
     }

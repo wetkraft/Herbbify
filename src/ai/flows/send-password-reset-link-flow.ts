@@ -30,7 +30,7 @@ const sendPasswordResetLinkFlow = ai.defineFlow(
   },
   async ({ email }) => {
     try {
-      // Check if user exists
+      // Check if user exists. This will throw an error if not found.
       const user = await adminAuth.getUserByEmail(email);
 
       // Generate password reset link
@@ -53,14 +53,18 @@ const sendPasswordResetLinkFlow = ai.defineFlow(
       });
 
     } catch (error: any) {
+      // To prevent user enumeration attacks, we don't want to tell the client
+      // specifically that a user was not found. Instead, we'll log it on the
+      // server and the client will show a generic success message.
       if (error.code === 'auth/user-not-found') {
-        // To prevent user enumeration, we don't throw an error here.
-        // The UI will show a generic success message regardless.
         console.log(`Password reset requested for non-existent user: ${email}`);
+        // IMPORTANT: Return instead of throwing, so the client shows a success message.
         return; 
       }
+      
       console.error(`[sendPasswordResetLinkFlow] Error for email ${email}:`, error);
-      // Re-throw other errors to be caught by the client-side caller
+      
+      // For all other errors, we re-throw them so the client can display a detailed message.
       throw new Error(error.message || "An unexpected error occurred while sending the password reset link.");
     }
   }
