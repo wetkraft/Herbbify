@@ -13,9 +13,9 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useError } from "@/components/error-provider";
-import { sendPasswordResetOtp } from "@/ai/flows/send-password-reset-otp-flow";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { handlePasswordReset } from "@/firebase/auth/client";
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -36,22 +36,20 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
-    try {
-      const result = await sendPasswordResetOtp({ email: values.email });
-      if (result.success) {
+    await handlePasswordReset(
+      values.email,
+      () => {
         toast({
-          title: "Code Sent",
-          description: "A password reset code has been sent to your email.",
+          title: "Password Reset Email Sent",
+          description: "Please check your inbox for a link to reset your password.",
         });
-        router.push(`/reset-password?email=${encodeURIComponent(values.email)}`);
-      } else {
-        showError("Error", result.message || "An unexpected error occurred.");
+        router.push('/login');
+      },
+      (message) => {
+        showError("Error", message);
       }
-    } catch (error: any) {
-      showError("Error", error.message || "Failed to send reset code. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    );
+    setIsLoading(false);
   };
 
   return (
@@ -63,7 +61,7 @@ export default function ForgotPasswordPage() {
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center items-center">
             <CardTitle className="font-headline text-2xl">Forgot Password?</CardTitle>
-            <CardDescription>Enter your email to receive a reset code.</CardDescription>
+            <CardDescription>Enter your email to receive a password reset link.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <Form {...form}>
@@ -82,7 +80,7 @@ export default function ForgotPasswordPage() {
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Send Reset Code
+                    Send Reset Link
                 </Button>
               </form>
             </Form>

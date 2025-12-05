@@ -1,7 +1,7 @@
 
 'use client';
 
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase';
 import { initiateEmailPasswordSignUp } from '../non-blocking-login';
 import { toast } from '@/hooks/use-toast';
@@ -23,6 +23,24 @@ export const handleGoogleSignIn = async (showError: (title: string, description:
   } catch (error: any) {
     console.error('Error during Google sign-in:', error);
     showError('Sign In Failed', error.message || 'An unexpected error occurred.');
+  }
+};
+
+export const handlePasswordReset = async (
+  email: string,
+  onSuccess: () => void,
+  onError: (message: string) => void
+) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    onSuccess();
+  } catch (error: any) {
+    console.error('Error sending password reset email:', error);
+    if (error.code === 'auth/user-not-found') {
+      onError('This email is not registered with Herbbify.');
+    } else {
+      onError(error.message || 'An unexpected error occurred.');
+    }
   }
 };
 
